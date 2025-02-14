@@ -11,6 +11,7 @@ public:
     ~pcapReader();
     int getCountPackages();
     int getLinkType();
+    std::string getLinkTypeName();
 private:
     char errbuf[PCAP_ERRBUF_SIZE];
     const char *file;

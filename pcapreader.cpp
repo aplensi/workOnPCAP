@@ -22,3 +22,8 @@ int pcapReader::getLinkType()
 {
     return pcap_datalink(pcap);
 }
+
+std::string pcapReader::getLinkTypeName()
+{
+    return pcap_datalink_val_to_name(pcap_datalink(pcap));
+}
