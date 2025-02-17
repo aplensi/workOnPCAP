@@ -6,7 +6,7 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
@@ -19,6 +19,8 @@ add_executable(pcapReader
   main.cpp
   pcapreader.h
   pcapreader.cpp
+  ownpcapreader.cpp
+  ownpcapreader.h
 )
 
 target_link_libraries(pcapReader PRIVATE Qt${QT_VERSION_MAJOR}::Core)
