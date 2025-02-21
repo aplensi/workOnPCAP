@@ -7,6 +7,7 @@ ownPcapReader::ownPcapReader(const char *file) : packetCount(0)
         std::cerr << "Не удалось открыть файл." << std::endl;
         return;
     }
+
     readGlobalHeader();
     countPackets();
 }
@@ -41,7 +42,9 @@ void ownPcapReader::countPackets()
     PcapPacketHeader packetHeader;
     while (ifs.read(reinterpret_cast<char*>(&packetHeader), sizeof(packetHeader))) {
         packetCount++;
-        ifs.seekg(packetHeader.incl_len, std::ios::cur);
+        std::vector<char> packetData(packetHeader.incl_len);
+        ifs.read(reinterpret_cast<char*>(packetData.data()), packetHeader.incl_len);
+        buffer.insert(buffer.end(), packetData.begin(), packetData.end());
     }
 }
 

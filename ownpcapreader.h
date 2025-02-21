@@ -2,6 +2,7 @@
 #define OWNPCAPREADER_H
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 #pragma pack(push, 1)
 struct PcapGlobalHeader {
@@ -35,6 +36,7 @@ private:
     void readGlobalHeader();
     void countPackets();
     int packetCount;
+    std::vector<char> buffer;
     std::string getLinkTypeName(uint32_t linktype) const;
 };
 
