@@ -10,6 +10,7 @@ ownPcapReader::ownPcapReader(const char *file) : packetCount(0)
 
     readGlobalHeader();
     countPackets();
+    createListOfPackages();
 }
 
 ownPcapReader::~ownPcapReader()
@@ -44,7 +45,32 @@ void ownPcapReader::countPackets()
         packetCount++;
         std::vector<char> packetData(packetHeader.incl_len);
         ifs.read(reinterpret_cast<char*>(packetData.data()), packetHeader.incl_len);
+        const char* headerPtr = reinterpret_cast<const char*>(&packetHeader);
+        buffer.insert(buffer.end(), headerPtr, headerPtr + sizeof(PcapPacketHeader));
         buffer.insert(buffer.end(), packetData.begin(), packetData.end());
+    }
+}
+
+void ownPcapReader::createListOfPackages()
+{
+    const uint8_t* dataPtr = reinterpret_cast<const uint8_t*>(buffer.data());
+    std::vector<Packet> packets;
+    size_t offset = 0;
+    int i = 0;
+    while(offset + sizeof(PcapPacketHeader) <= buffer.size())
+    {
+        const PcapPacketHeader* header = reinterpret_cast<const PcapPacketHeader*>(dataPtr + offset);
+        offset += sizeof(PcapPacketHeader);
+        if (offset + header->incl_len > buffer.size()) {
+            std::cout << "Ошибка: данные пакета выходят за пределы файла!" << std::endl;
+            break;
+        }
+        Packet packet;
+        packet.size = header->incl_len;
+        packet.data = dataPtr + offset;
+        packets.push_back(packet);
+        offset += header->incl_len;
+        i++;
     }
 }
 

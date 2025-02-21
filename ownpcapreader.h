@@ -20,6 +20,10 @@ struct PcapPacketHeader {
     uint32_t incl_len;
     uint32_t orig_len;
 };
+struct Packet {
+    uint32_t size;
+    const uint8_t* data;
+};
 #pragma pack(pop)
 
 class ownPcapReader
@@ -35,8 +39,10 @@ private:
     PcapGlobalHeader globalHeader;
     void readGlobalHeader();
     void countPackets();
+    void createListOfPackages();
     int packetCount;
     std::vector<char> buffer;
+    std::vector<Packet> packets;
     std::string getLinkTypeName(uint32_t linktype) const;
 };
 
