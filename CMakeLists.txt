@@ -12,22 +12,17 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 find_package(QT NAMES Qt6 Qt5 REQUIRED COMPONENTS Core)
 find_package(Qt${QT_VERSION_MAJOR} REQUIRED COMPONENTS Core)
 
-find_package(PkgConfig REQUIRED)
-pkg_search_module(PCAP REQUIRED libpcap)
-
 add_executable(pcapReader
   main.cpp
-  pcapreader.h
-  pcapreader.cpp
   ownpcapreader.cpp
   ownpcapreader.h
 )
 
 target_link_libraries(pcapReader PRIVATE Qt${QT_VERSION_MAJOR}::Core)
 
-target_link_libraries(pcapReader PRIVATE ${PCAP_LIBRARIES})
+target_link_libraries(pcapReader PRIVATE)
 
-target_include_directories(pcapReader PRIVATE ${PCAP_INCLUDE_DIRS})
+target_include_directories(pcapReader PRIVATE)
 
 install(TARGETS pcapReader
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
