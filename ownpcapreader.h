@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <iomanip>
 
 #pragma pack(push, 1)
 struct PcapGlobalHeader {
@@ -40,9 +41,9 @@ private:
     void countPackets();
     void readPcapToBuffer();
     void createListOfPackages();
-    int packetCount = 0;
+    void writePacketsToFile();
     std::vector<char> buffer;
-    std::vector<Packet> packets;
+    std::vector<Packet> packages;
     std::string getLinkTypeName(uint32_t linktype) const;
 };
 

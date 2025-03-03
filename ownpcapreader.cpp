@@ -1,6 +1,6 @@
 #include "ownpcapreader.h"
 
-ownPcapReader::ownPcapReader(const char *file) : packetCount(0)
+ownPcapReader::ownPcapReader(const char *file)
 {
     ifs.open(file, std::ios::binary);
     if (!file) {
@@ -9,6 +9,7 @@ ownPcapReader::ownPcapReader(const char *file) : packetCount(0)
     }
     readPcapToBuffer();
     createListOfPackages();
+    writePacketsToFile();
 }
 
 ownPcapReader::~ownPcapReader()
@@ -28,7 +29,7 @@ std::string ownPcapReader::getLinkTypeName()
 
 int ownPcapReader::getCountPackages()
 {
-    return packetCount;
+    return packages.size();
 }
 
 void ownPcapReader::readPcapToBuffer()
@@ -50,7 +51,6 @@ void ownPcapReader::readPcapToBuffer()
 void ownPcapReader::createListOfPackages()
 {
     const uint8_t* dataPtr = reinterpret_cast<const uint8_t*>(buffer.data());
-    std::vector<Packet> packets;
     size_t offset = sizeof(PcapGlobalHeader);
     while(offset + sizeof(PcapPacketHeader) <= buffer.size())
     {
@@ -63,9 +63,22 @@ void ownPcapReader::createListOfPackages()
         Packet packet;
         packet.size = header->incl_len;
         packet.data = dataPtr + offset;
-        packets.push_back(packet);
+        packages.push_back(packet);
         offset += header->incl_len;
-        packetCount++;
+    }
+}
+
+void ownPcapReader::writePacketsToFile()
+{
+    std::ofstream ofs2Bytes("2bytes.bin", std::ios::binary);
+    std::ofstream ofs4Bytes("4bytes.bin", std::ios::binary);
+    for(auto packet : packages)
+    {
+        uint16_t packet16 = static_cast<uint16_t>(packet.size);
+        ofs2Bytes.write(reinterpret_cast<const char*>(&packet16), sizeof(packet16));
+        ofs2Bytes.write(reinterpret_cast<const char*>(packet.data), packet16);
+        ofs4Bytes.write(reinterpret_cast<const char*>(&packet.size), sizeof(packet.size));
+        ofs4Bytes.write(reinterpret_cast<const char*>(packet.data), packet.size);
     }
 }
 
