@@ -7,9 +7,7 @@ ownPcapReader::ownPcapReader(const char *file) : packetCount(0)
         std::cerr << "Не удалось открыть файл." << std::endl;
         return;
     }
-
-    readGlobalHeader();
-    countPackets();
+    readPcapToBuffer();
     createListOfPackages();
 }
 
@@ -33,16 +31,14 @@ int ownPcapReader::getCountPackages()
     return packetCount;
 }
 
-void ownPcapReader::readGlobalHeader()
+void ownPcapReader::readPcapToBuffer()
 {
     ifs.read(reinterpret_cast<char*>(&globalHeader), sizeof(globalHeader));
-}
+    const char* globalHeaderPtr = reinterpret_cast<const char*>(&globalHeader);
+    buffer.insert(buffer.end(), globalHeaderPtr, globalHeaderPtr + sizeof(PcapGlobalHeader));
 
-void ownPcapReader::countPackets()
-{
     PcapPacketHeader packetHeader;
     while (ifs.read(reinterpret_cast<char*>(&packetHeader), sizeof(packetHeader))) {
-        packetCount++;
         std::vector<char> packetData(packetHeader.incl_len);
         ifs.read(reinterpret_cast<char*>(packetData.data()), packetHeader.incl_len);
         const char* headerPtr = reinterpret_cast<const char*>(&packetHeader);
@@ -55,8 +51,7 @@ void ownPcapReader::createListOfPackages()
 {
     const uint8_t* dataPtr = reinterpret_cast<const uint8_t*>(buffer.data());
     std::vector<Packet> packets;
-    size_t offset = 0;
-    int i = 0;
+    size_t offset = sizeof(PcapGlobalHeader);
     while(offset + sizeof(PcapPacketHeader) <= buffer.size())
     {
         const PcapPacketHeader* header = reinterpret_cast<const PcapPacketHeader*>(dataPtr + offset);
@@ -70,7 +65,7 @@ void ownPcapReader::createListOfPackages()
         packet.data = dataPtr + offset;
         packets.push_back(packet);
         offset += header->incl_len;
-        i++;
+        packetCount++;
     }
 }
 

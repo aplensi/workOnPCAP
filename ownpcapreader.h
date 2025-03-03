@@ -37,10 +37,10 @@ public:
 private:
     std::ifstream ifs;
     PcapGlobalHeader globalHeader;
-    void readGlobalHeader();
     void countPackets();
+    void readPcapToBuffer();
     void createListOfPackages();
-    int packetCount;
+    int packetCount = 0;
     std::vector<char> buffer;
     std::vector<Packet> packets;
     std::string getLinkTypeName(uint32_t linktype) const;
