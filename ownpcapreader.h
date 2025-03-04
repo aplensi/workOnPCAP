@@ -3,7 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include <iomanip>
+#include <cstring>
 
 #pragma pack(push, 1)
 struct PcapGlobalHeader {

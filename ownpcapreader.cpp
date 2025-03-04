@@ -30,38 +30,36 @@ void ownPcapReader::readPcapToBuffer()
         std::cerr << "Не удалось открыть файл." << std::endl;
         return;
     }
-    ifs.read(reinterpret_cast<char*>(&globalHeader), sizeof(globalHeader));
-    const char* globalHeaderPtr = reinterpret_cast<const char*>(&globalHeader);
-    buffer.insert(buffer.end(), globalHeaderPtr, globalHeaderPtr + sizeof(PcapGlobalHeader));
-
-    PcapPacketHeader packetHeader;
-    while (ifs.read(reinterpret_cast<char*>(&packetHeader), sizeof(packetHeader))) {
-        std::vector<char> packetData(packetHeader.incl_len);
-        ifs.read(reinterpret_cast<char*>(packetData.data()), packetHeader.incl_len);
-        const char* headerPtr = reinterpret_cast<const char*>(&packetHeader);
-        buffer.insert(buffer.end(), headerPtr, headerPtr + sizeof(PcapPacketHeader));
-        buffer.insert(buffer.end(), packetData.begin(), packetData.end());
+    ifs.seekg(0, std::ios::end);
+    std::streamsize fileSize = ifs.tellg();
+    ifs.seekg(0, std::ios::beg);
+    buffer.resize(fileSize);
+    if (!ifs.read(buffer.data(), fileSize)) {
+        throw std::runtime_error("Ошибка чтения файла: " + std::string(file));
     }
     ifs.close();
 }
 
 void ownPcapReader::createListOfPackages()
 {
+    std::memcpy(&globalHeader, buffer.data(), sizeof(PcapGlobalHeader));
+
     const uint8_t* dataPtr = reinterpret_cast<const uint8_t*>(buffer.data());
     size_t offset = sizeof(PcapGlobalHeader);
     while(offset + sizeof(PcapPacketHeader) <= buffer.size())
     {
-        const PcapPacketHeader* header = reinterpret_cast<const PcapPacketHeader*>(dataPtr + offset);
+        PcapPacketHeader header;
+        std::memcpy(&header, buffer.data() + offset, sizeof(PcapPacketHeader));
         offset += sizeof(PcapPacketHeader);
-        if (offset + header->incl_len > buffer.size()) {
+        if (offset + header.incl_len > buffer.size()) {
             std::cout << "Ошибка: данные пакета выходят за пределы файла!" << std::endl;
             break;
         }
         Packet packet;
-        packet.size = header->incl_len;
+        packet.size = header.incl_len;
         packet.data = dataPtr + offset;
         packages.push_back(packet);
-        offset += header->incl_len;
+        offset += header.incl_len;
     }
 }
 
@@ -74,18 +72,19 @@ void ownPcapReader::writePacketsToFile()
     size_t offset = sizeof(PcapGlobalHeader);
     while(offset + sizeof(PcapPacketHeader) <= buffer.size())
     {
-        const PcapPacketHeader* header = reinterpret_cast<const PcapPacketHeader*>(dataPtr + offset);
+        PcapPacketHeader header;
+        std::memcpy(&header, buffer.data() + offset, sizeof(PcapPacketHeader));
         offset += sizeof(PcapPacketHeader);
-        if (offset + header->incl_len > buffer.size()) {
+        if (offset + header.incl_len > buffer.size()) {
             std::cout << "Ошибка: данные пакета выходят за пределы файла!" << std::endl;
             break;
         }
-        uint16_t packet16 = static_cast<uint16_t>(header->incl_len);
+        uint16_t packet16 = static_cast<uint16_t>(header.incl_len);
         ofs2Bytes.write(reinterpret_cast<const char*>(&packet16), sizeof(packet16));
         ofs2Bytes.write(reinterpret_cast<const char*>(dataPtr + offset), packet16);
-        ofs4Bytes.write(reinterpret_cast<const char*>(&header->incl_len), sizeof(header->incl_len));
-        ofs4Bytes.write(reinterpret_cast<const char*>(dataPtr + offset), header->incl_len);
-        offset += header->incl_len;
+        ofs4Bytes.write(reinterpret_cast<const char*>(&header.incl_len), sizeof(header.incl_len));
+        ofs4Bytes.write(reinterpret_cast<const char*>(dataPtr + offset), header.incl_len);
+        offset += header.incl_len;
     }
 }
 
