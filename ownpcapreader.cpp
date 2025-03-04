@@ -1,20 +1,10 @@
 #include "ownpcapreader.h"
 
-ownPcapReader::ownPcapReader(const char *file)
+ownPcapReader::ownPcapReader(const char* file) : file(file)
 {
-    ifs.open(file, std::ios::binary);
-    if (!file) {
-        std::cerr << "Не удалось открыть файл." << std::endl;
-        return;
-    }
     readPcapToBuffer();
     createListOfPackages();
     writePacketsToFile();
-}
-
-ownPcapReader::~ownPcapReader()
-{
-    ifs.close();
 }
 
 int ownPcapReader::getLinkType()
@@ -34,6 +24,12 @@ int ownPcapReader::getCountPackages()
 
 void ownPcapReader::readPcapToBuffer()
 {
+    std::ifstream ifs;
+    ifs.open(file, std::ios::binary);
+    if (!file) {
+        std::cerr << "Не удалось открыть файл." << std::endl;
+        return;
+    }
     ifs.read(reinterpret_cast<char*>(&globalHeader), sizeof(globalHeader));
     const char* globalHeaderPtr = reinterpret_cast<const char*>(&globalHeader);
     buffer.insert(buffer.end(), globalHeaderPtr, globalHeaderPtr + sizeof(PcapGlobalHeader));
@@ -46,6 +42,7 @@ void ownPcapReader::readPcapToBuffer()
         buffer.insert(buffer.end(), headerPtr, headerPtr + sizeof(PcapPacketHeader));
         buffer.insert(buffer.end(), packetData.begin(), packetData.end());
     }
+    ifs.close();
 }
 
 void ownPcapReader::createListOfPackages()
@@ -72,13 +69,23 @@ void ownPcapReader::writePacketsToFile()
 {
     std::ofstream ofs2Bytes("2bytes.bin", std::ios::binary);
     std::ofstream ofs4Bytes("4bytes.bin", std::ios::binary);
-    for(auto packet : packages)
+
+    const uint8_t* dataPtr = reinterpret_cast<const uint8_t*>(buffer.data());
+    size_t offset = sizeof(PcapGlobalHeader);
+    while(offset + sizeof(PcapPacketHeader) <= buffer.size())
     {
-        uint16_t packet16 = static_cast<uint16_t>(packet.size);
+        const PcapPacketHeader* header = reinterpret_cast<const PcapPacketHeader*>(dataPtr + offset);
+        offset += sizeof(PcapPacketHeader);
+        if (offset + header->incl_len > buffer.size()) {
+            std::cout << "Ошибка: данные пакета выходят за пределы файла!" << std::endl;
+            break;
+        }
+        uint16_t packet16 = static_cast<uint16_t>(header->incl_len);
         ofs2Bytes.write(reinterpret_cast<const char*>(&packet16), sizeof(packet16));
-        ofs2Bytes.write(reinterpret_cast<const char*>(packet.data), packet16);
-        ofs4Bytes.write(reinterpret_cast<const char*>(&packet.size), sizeof(packet.size));
-        ofs4Bytes.write(reinterpret_cast<const char*>(packet.data), packet.size);
+        ofs2Bytes.write(reinterpret_cast<const char*>(dataPtr + offset), packet16);
+        ofs4Bytes.write(reinterpret_cast<const char*>(&header->incl_len), sizeof(header->incl_len));
+        ofs4Bytes.write(reinterpret_cast<const char*>(dataPtr + offset), header->incl_len);
+        offset += header->incl_len;
     }
 }
 

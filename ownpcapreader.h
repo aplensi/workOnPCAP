@@ -31,17 +31,16 @@ class ownPcapReader
 {
 public:
     ownPcapReader(const char* file);
-    ~ownPcapReader();
     int getLinkType();
     std::string getLinkTypeName();
     int getCountPackages();
 private:
-    std::ifstream ifs;
     PcapGlobalHeader globalHeader;
     void countPackets();
     void readPcapToBuffer();
     void createListOfPackages();
     void writePacketsToFile();
+    const char* file;
     std::vector<char> buffer;
     std::vector<Packet> packages;
     std::string getLinkTypeName(uint32_t linktype) const;
