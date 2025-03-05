@@ -7,25 +7,31 @@
 
 #pragma pack(push, 1)
 struct PcapGlobalHeader {
-    uint32_t magic_number;
-    uint16_t version_minor;
-    int32_t thiszone;
-    uint32_t sigfigs;
-    uint16_t version_major;
-    uint32_t snaplen;
-    uint32_t network;
+    uint32_t m_magic_number;
+    uint16_t m_version_minor;
+    int32_t m_thiszone;
+    uint32_t m_sigfigs;
+    uint16_t m_version_major;
+    uint32_t m_snaplen;
+    uint32_t m_network;
 };
 struct PcapPacketHeader {
-    uint32_t ts_sec;
-    uint32_t ts_usec;
-    uint32_t incl_len;
-    uint32_t orig_len;
+    uint32_t m_ts_sec;
+    uint32_t m_ts_usec;
+    uint32_t m_incl_len;
+    uint32_t m_orig_len;
 };
 struct Packet {
-    uint32_t size;
-    const uint8_t* data;
+    uint32_t m_size;
+    const uint8_t* m_data;
 };
 #pragma pack(pop)
+
+enum FileType
+{
+    TwoBytes,
+    FourBytes
+};
 
 class ownPcapReader
 {
@@ -35,14 +41,14 @@ public:
     std::string getLinkTypeName();
     int getCountPackages();
 private:
-    PcapGlobalHeader globalHeader;
+    PcapGlobalHeader* m_globalHeader;
+    const char* m_file;
+    std::vector<uint8_t> m_buffer;
+    std::vector<Packet> m_packages;
     void countPackets();
     void readPcapToBuffer();
     void createListOfPackages();
-    void writePacketsToFile();
-    const char* file;
-    std::vector<char> buffer;
-    std::vector<Packet> packages;
+    void writePacketsToFile(FileType type);
     std::string getLinkTypeName(uint32_t linktype) const;
 };
 
