@@ -87,7 +87,7 @@ void ownPcapReader::writePacketsToFile(FileType type)
     } else{
         ofs.open("4bytes.bin", std::ios::binary);
     }
-
+    std::vector<uint8_t> fileBuffer;
     const uint8_t* dataPtr = reinterpret_cast<const uint8_t*>(m_buffer.data());
     uint16_t packet16;
     PcapPacketHeader* header;
@@ -102,14 +102,15 @@ void ownPcapReader::writePacketsToFile(FileType type)
         }
         if(type == FileType::TwoBytes){
             packet16 = static_cast<uint16_t>(header->m_incl_len);
-            ofs.write(reinterpret_cast<const char*>(&packet16), sizeof(packet16));
-            ofs.write(reinterpret_cast<const char*>(dataPtr + offset), packet16);
+            fileBuffer.insert(fileBuffer.end(), reinterpret_cast<uint8_t*>(&packet16), reinterpret_cast<uint8_t*>(&packet16) + sizeof(packet16));
+            fileBuffer.insert(fileBuffer.end(), dataPtr + offset, dataPtr + offset + packet16);
         } else{
-            ofs.write(reinterpret_cast<const char*>(&header->m_incl_len), sizeof(header->m_incl_len));
-            ofs.write(reinterpret_cast<const char*>(dataPtr + offset), header->m_incl_len);
+            fileBuffer.insert(fileBuffer.end(), reinterpret_cast<uint8_t*>(&header->m_incl_len), reinterpret_cast<uint8_t*>(&header->m_incl_len) + sizeof(header->m_incl_len));
+            fileBuffer.insert(fileBuffer.end(), dataPtr + offset, dataPtr + offset + header->m_incl_len);
         }
         offset += header->m_incl_len;
     }
+    ofs.write(reinterpret_cast<const char*>(fileBuffer.data()), fileBuffer.size());
 }
 
 std::string ownPcapReader::getLinkTypeName(uint32_t linktype) const
