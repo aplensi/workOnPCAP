@@ -18,6 +18,39 @@ std::string ownPcapReader::getLinkTypeName()
     return getLinkTypeName(m_globalHeader->m_network);
 }
 
+void ownPcapReader::readFile(const char* file, FileType type)
+{
+    std::ifstream ifs(file, std::ios::binary);
+    if (!ifs) {
+        std::cerr << "Не удалось открыть файл." << std::endl;
+        return;
+    }
+    uint16_t byte2;
+    uint32_t byte4;
+    std::vector<uint8_t> packetData;
+    while(true)
+    {
+        if(type == FileType::TwoBytes){
+            if(!ifs.read(reinterpret_cast<char*>(&byte2), sizeof(byte2))){
+                break;
+            }
+            byte4 = byte2;
+        } else{
+            if(!ifs.read(reinterpret_cast<char*>(&byte4), sizeof(byte4))){
+                break;
+            }
+        }
+        packetData.resize(byte4);
+        ifs.read(reinterpret_cast<char*>(packetData.data()), byte4);
+        std::cout << "Размер пакета: " << byte4 << std::endl;
+        for(uint8_t data : packetData){
+            std::cout << std::hex << std::setw(2) <<std::setfill('0') << static_cast<int>(data) << " ";
+        }
+        std::cout << std::dec << std::endl << std::endl;
+    }
+
+}
+
 int ownPcapReader::getCountPackages()
 {
     return m_packages.size();
@@ -27,7 +60,7 @@ void ownPcapReader::readPcapToBuffer()
 {
     std::ifstream ifs;
     ifs.open(m_file, std::ios::binary);
-    if (!m_file) {
+    if (!ifs) {
         std::cerr << "Не удалось открыть файл." << std::endl;
         return;
     }

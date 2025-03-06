@@ -3,7 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include <cstring>
+#include <iomanip>
 
 #pragma pack(push, 1)
 struct PcapGlobalHeader {
@@ -38,8 +38,9 @@ class ownPcapReader
 public:
     ownPcapReader(const char* file);
     int getLinkType();
-    std::string getLinkTypeName();
     int getCountPackages();
+    std::string getLinkTypeName();
+    void readFile(const char* file, FileType type);
 private:
     PcapGlobalHeader* m_globalHeader;
     const char* m_file;
