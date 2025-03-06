@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <iomanip>
+#include <map>
 
 #pragma pack(push, 1)
 struct PcapGlobalHeader {
@@ -39,6 +40,7 @@ public:
     ownPcapReader(const char* file);
     int getLinkType();
     int getCountPackages();
+    std::map<int, int> getMapOfPackages();
     std::string getLinkTypeName();
     void readFile(const char* file, FileType type);
 private:
@@ -46,8 +48,10 @@ private:
     const char* m_file;
     std::vector<uint8_t> m_buffer;
     std::vector<Packet> m_packages;
+    std::map<int, int> m_sizes;
     void countPackets();
     void readPcapToBuffer();
+    void createListOfSizes();
     void createListOfPackages();
     void writePacketsToFile(FileType type);
     std::string getLinkTypeName(uint32_t linktype) const;

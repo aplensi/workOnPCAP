@@ -6,6 +6,7 @@ ownPcapReader::ownPcapReader(const char* file) : m_file(file)
     createListOfPackages();
     writePacketsToFile(FileType::FourBytes);
     writePacketsToFile(FileType::TwoBytes);
+    createListOfSizes();
 }
 
 int ownPcapReader::getLinkType()
@@ -56,6 +57,11 @@ int ownPcapReader::getCountPackages()
     return m_packages.size();
 }
 
+std::map<int, int> ownPcapReader::getMapOfPackages()
+{
+    return m_sizes;
+}
+
 void ownPcapReader::readPcapToBuffer()
 {
     std::ifstream ifs;
@@ -72,6 +78,17 @@ void ownPcapReader::readPcapToBuffer()
         throw std::runtime_error("Ошибка чтения файла: " + std::string(m_file));
     }
     ifs.close();
+}
+
+void ownPcapReader::createListOfSizes()
+{
+    for(auto package : m_packages){
+        if(m_sizes.count(package.m_size) == 0){
+            m_sizes[package.m_size] = 1;
+        } else{
+            m_sizes[package.m_size] += 1;
+        }
+    }
 }
 
 void ownPcapReader::createListOfPackages()
