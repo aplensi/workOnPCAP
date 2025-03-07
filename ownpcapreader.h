@@ -30,8 +30,10 @@ struct Packet {
 
 enum FileType
 {
+    OneByte,
     TwoBytes,
-    FourBytes
+    FourBytes,
+    EightBytes
 };
 
 class ownPcapReader

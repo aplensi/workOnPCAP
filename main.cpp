@@ -8,8 +8,8 @@ int main(int argc, char *argv[])
     std::cout << "\033c";
     ownPcapReader ownreader("record.pcap");
 
-    ownreader.readFile("2bytes.bin", FileType::TwoBytes);
-    ownreader.readFile("4bytes.bin", FileType::FourBytes);
+    ownreader.readFile("8bytes.bin", FileType::EightBytes);
+    //ownreader.readFile("4bytes.bin", FileType::FourBytes);
 
     std::map<int, int> sizes = ownreader.getMapOfPackages();
     for(auto [size, count] : sizes){

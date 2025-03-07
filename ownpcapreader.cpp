@@ -6,6 +6,8 @@ ownPcapReader::ownPcapReader(const char* file) : m_file(file)
     createListOfPackages();
     writePacketsToFile(FileType::FourBytes);
     writePacketsToFile(FileType::TwoBytes);
+    writePacketsToFile(FileType::OneByte);
+    writePacketsToFile(FileType::EightBytes);
     createListOfSizes();
 }
 
@@ -26,24 +28,43 @@ void ownPcapReader::readFile(const char* file, FileType type)
         std::cerr << "Не удалось открыть файл." << std::endl;
         return;
     }
+    uint8_t byte1;
     uint16_t byte2;
     uint32_t byte4;
+    uint64_t byte8;
     std::vector<uint8_t> packetData;
+    bool exFlag = true;
     while(true)
     {
-        if(type == FileType::TwoBytes){
-            if(!ifs.read(reinterpret_cast<char*>(&byte2), sizeof(byte2))){
+        switch(type){
+            case FileType::OneByte:
+                if(!ifs.read(reinterpret_cast<char*>(&byte1), sizeof(byte1))){
+                    exFlag = false;
+                }
+                byte8 = byte1;
                 break;
-            }
-            byte4 = byte2;
-        } else{
-            if(!ifs.read(reinterpret_cast<char*>(&byte4), sizeof(byte4))){
+            case FileType::TwoBytes:
+                if(!ifs.read(reinterpret_cast<char*>(&byte2), sizeof(byte2))){
+                    exFlag = false;
+                }
+                byte8 = byte2;
                 break;
-            }
+            case FileType::FourBytes:
+                if(!ifs.read(reinterpret_cast<char*>(&byte4), sizeof(byte4))){
+                    exFlag = false;
+                }
+                byte8 = byte4;
+                break;
+            case FileType::EightBytes:
+                if(!ifs.read(reinterpret_cast<char*>(&byte8), sizeof(byte8))){
+                    exFlag = false;
+                }
+                break;
         }
-        packetData.resize(byte4);
-        ifs.read(reinterpret_cast<char*>(packetData.data()), byte4);
-        std::cout << "Размер пакета: " << byte4 << std::endl;
+        if(exFlag == false){break;};
+        packetData.resize(byte8);
+        ifs.read(reinterpret_cast<char*>(packetData.data()), byte8);
+        std::cout << "Размер пакета: " << byte8 << std::endl;
         for(uint8_t data : packetData){
             std::cout << std::hex << std::setw(2) <<std::setfill('0') << static_cast<int>(data) << " ";
         }
@@ -132,14 +153,25 @@ void ownPcapReader::createListOfPackages()
 void ownPcapReader::writePacketsToFile(FileType type)
 {
     std::ofstream ofs;
-    if(type == FileType::TwoBytes){
-        ofs.open("2bytes.bin", std::ios::binary);
-    } else{
-        ofs.open("4bytes.bin", std::ios::binary);
+    switch(type){
+        case FileType::OneByte:
+            ofs.open("1bytes.bin", std::ios::binary);
+            break;
+        case FileType::TwoBytes:
+            ofs.open("2bytes.bin", std::ios::binary);
+            break;
+        case FileType::FourBytes:
+            ofs.open("4bytes.bin", std::ios::binary);
+            break;
+        case FileType::EightBytes:
+            ofs.open("8bytes.bin", std::ios::binary);
+            break;
     }
     std::vector<uint8_t> fileBuffer;
     const uint8_t* dataPtr = reinterpret_cast<const uint8_t*>(m_buffer.data());
     uint16_t packet16;
+    uint8_t packet8;
+    uint64_t packet64;
     PcapPacketHeader* header;
     size_t offset = sizeof(PcapGlobalHeader);
     while(offset + sizeof(PcapPacketHeader) <= m_buffer.size())
@@ -150,14 +182,29 @@ void ownPcapReader::writePacketsToFile(FileType type)
             std::cout << "Ошибка: данные пакета выходят за пределы файла!" << std::endl;
             break;
         }
-        if(type == FileType::TwoBytes){
-            packet16 = static_cast<uint16_t>(header->m_incl_len);
-            fileBuffer.insert(fileBuffer.end(), reinterpret_cast<uint8_t*>(&packet16), reinterpret_cast<uint8_t*>(&packet16) + sizeof(packet16));
-            fileBuffer.insert(fileBuffer.end(), dataPtr + offset, dataPtr + offset + packet16);
-        } else{
-            fileBuffer.insert(fileBuffer.end(), reinterpret_cast<uint8_t*>(&header->m_incl_len), reinterpret_cast<uint8_t*>(&header->m_incl_len) + sizeof(header->m_incl_len));
-            fileBuffer.insert(fileBuffer.end(), dataPtr + offset, dataPtr + offset + header->m_incl_len);
+
+        switch(type){
+            case FileType::OneByte:
+                packet8 = static_cast<uint8_t>(header->m_incl_len);
+                fileBuffer.insert(fileBuffer.end(), reinterpret_cast<uint8_t*>(&packet8), reinterpret_cast<uint8_t*>(&packet8) + sizeof(packet8));
+                fileBuffer.insert(fileBuffer.end(), dataPtr + offset, dataPtr + offset + packet8);
+                break;
+            case FileType::TwoBytes:
+                packet16 = static_cast<uint16_t>(header->m_incl_len);
+                fileBuffer.insert(fileBuffer.end(), reinterpret_cast<uint8_t*>(&packet16), reinterpret_cast<uint8_t*>(&packet16) + sizeof(packet16));
+                fileBuffer.insert(fileBuffer.end(), dataPtr + offset, dataPtr + offset + packet16);
+                break;
+            case FileType::FourBytes:
+                fileBuffer.insert(fileBuffer.end(), reinterpret_cast<uint8_t*>(&header->m_incl_len), reinterpret_cast<uint8_t*>(&header->m_incl_len) + sizeof(header->m_incl_len));
+                fileBuffer.insert(fileBuffer.end(), dataPtr + offset, dataPtr + offset + header->m_incl_len);
+                break;
+            case FileType::EightBytes:
+                packet64 = static_cast<uint64_t>(header->m_incl_len);
+                fileBuffer.insert(fileBuffer.end(), reinterpret_cast<uint8_t*>(&packet64), reinterpret_cast<uint8_t*>(&packet64) + sizeof(packet64));
+                fileBuffer.insert(fileBuffer.end(), dataPtr + offset, dataPtr + offset + packet64);
+                break;
         }
+
         offset += header->m_incl_len;
     }
     ofs.write(reinterpret_cast<const char*>(fileBuffer.data()), fileBuffer.size());
