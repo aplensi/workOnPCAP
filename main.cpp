@@ -1,5 +1,5 @@
 #include "ownpcapreader.h"
-#include "readFile.h"
+#include "readAndWrite.h"
 
 int main(int argc, char *argv[])
 {
@@ -7,13 +7,15 @@ int main(int argc, char *argv[])
     std::cout << "\033c";
     ownPcapReader ownreader("record.pcap");
 
-    SizedFieldReader reader(4);
-    processFile("file.sig32", reader);
+    SizedField field(8);
+    TypedField<uint64_t> field1;
+    processWrite(ownreader.getBuffer(), field);
+    processRead("file.sig64", field1);
 
-    std::map<int, int> sizes = ownreader.getMapOfPackages();
-    for(auto [size, count] : sizes){
-        std::cout << size << " => " << count << std::endl;
-    }
+    // std::map<int, int> sizes = ownreader.getMapOfPackages();
+    // for(auto [size, count] : sizes){
+    //     std::cout << size << " => " << count << std::endl;
+    // }
 
     std::cout << std::endl << "Количество пакетов: " << ownreader.getCountPackages() << std::endl;
     std::cout << "LinkType: " << ownreader.getLinkType() << std::endl;

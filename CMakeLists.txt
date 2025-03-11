@@ -9,6 +9,6 @@ add_executable(pcapReader
   main.cpp
   ownpcapreader.cpp
   ownpcapreader.h
-  readFile.cpp
-  readFile.h
+  readAndWrite.cpp
+  readAndWrite.h
 )

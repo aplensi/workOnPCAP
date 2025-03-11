@@ -44,6 +44,7 @@ public:
     int getCountPackages();
     std::map<int, int> getMapOfPackages();
     std::string getLinkTypeName();
+    std::vector<uint8_t> getBuffer();
 private:
     PcapGlobalHeader* m_globalHeader;
     const char* m_file;
@@ -54,7 +55,6 @@ private:
     void readPcapToBuffer();
     void createListOfSizes();
     void createListOfPackages();
-    void writePacketsToFile(FileType type);
     std::string getLinkTypeName(uint32_t linktype) const;
 };
 

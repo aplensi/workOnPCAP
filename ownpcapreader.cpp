@@ -4,10 +4,6 @@ ownPcapReader::ownPcapReader(const char* file) : m_file(file)
 {
     readPcapToBuffer();
     createListOfPackages();
-    writePacketsToFile(FileType::FourBytes);
-    writePacketsToFile(FileType::TwoBytes);
-    writePacketsToFile(FileType::OneByte);
-    writePacketsToFile(FileType::EightBytes);
     createListOfSizes();
 }
 
@@ -19,6 +15,11 @@ int ownPcapReader::getLinkType()
 std::string ownPcapReader::getLinkTypeName()
 {
     return getLinkTypeName(m_globalHeader->m_network);
+}
+
+std::vector<uint8_t> ownPcapReader::getBuffer()
+{
+    return m_buffer;
 }
 
 int ownPcapReader::getCountPackages()
@@ -96,66 +97,6 @@ void ownPcapReader::createListOfPackages()
         m_packages.emplace_back(packet);
         offset += header->m_incl_len;
     }
-}
-
-void ownPcapReader::writePacketsToFile(FileType type)
-{
-    std::ofstream ofs;
-    switch(type){
-        case FileType::OneByte:
-            ofs.open("file.sig8", std::ios::binary);
-            break;
-        case FileType::TwoBytes:
-            ofs.open("file.sig16", std::ios::binary);
-            break;
-        case FileType::FourBytes:
-            ofs.open("file.sig32", std::ios::binary);
-            break;
-        case FileType::EightBytes:
-            ofs.open("file.sig64", std::ios::binary);
-            break;
-    }
-    std::vector<uint8_t> fileBuffer;
-    const uint8_t* dataPtr = reinterpret_cast<const uint8_t*>(m_buffer.data());
-    uint16_t packet16;
-    uint8_t packet8;
-    uint64_t packet64;
-    PcapPacketHeader* header;
-    size_t offset = sizeof(PcapGlobalHeader);
-    while(offset + sizeof(PcapPacketHeader) <= m_buffer.size())
-    {
-        header = reinterpret_cast<PcapPacketHeader*>(m_buffer.data() + offset);
-        offset += sizeof(PcapPacketHeader);
-        if (offset + header->m_incl_len > m_buffer.size()) {
-            std::cout << "Ошибка: данные пакета выходят за пределы файла!" << std::endl;
-            break;
-        }
-
-        switch(type){
-            case FileType::OneByte:
-                packet8 = static_cast<uint8_t>(header->m_incl_len);
-                fileBuffer.insert(fileBuffer.end(), reinterpret_cast<uint8_t*>(&packet8), reinterpret_cast<uint8_t*>(&packet8) + sizeof(packet8));
-                fileBuffer.insert(fileBuffer.end(), dataPtr + offset, dataPtr + offset + packet8);
-                break;
-            case FileType::TwoBytes:
-                packet16 = static_cast<uint16_t>(header->m_incl_len);
-                fileBuffer.insert(fileBuffer.end(), reinterpret_cast<uint8_t*>(&packet16), reinterpret_cast<uint8_t*>(&packet16) + sizeof(packet16));
-                fileBuffer.insert(fileBuffer.end(), dataPtr + offset, dataPtr + offset + packet16);
-                break;
-            case FileType::FourBytes:
-                fileBuffer.insert(fileBuffer.end(), reinterpret_cast<uint8_t*>(&header->m_incl_len), reinterpret_cast<uint8_t*>(&header->m_incl_len) + sizeof(header->m_incl_len));
-                fileBuffer.insert(fileBuffer.end(), dataPtr + offset, dataPtr + offset + header->m_incl_len);
-                break;
-            case FileType::EightBytes:
-                packet64 = static_cast<uint64_t>(header->m_incl_len);
-                fileBuffer.insert(fileBuffer.end(), reinterpret_cast<uint8_t*>(&packet64), reinterpret_cast<uint8_t*>(&packet64) + sizeof(packet64));
-                fileBuffer.insert(fileBuffer.end(), dataPtr + offset, dataPtr + offset + packet64);
-                break;
-        }
-
-        offset += header->m_incl_len;
-    }
-    ofs.write(reinterpret_cast<const char*>(fileBuffer.data()), fileBuffer.size());
 }
 
 std::string ownPcapReader::getLinkTypeName(uint32_t linktype) const
