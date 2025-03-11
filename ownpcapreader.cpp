@@ -21,58 +21,6 @@ std::string ownPcapReader::getLinkTypeName()
     return getLinkTypeName(m_globalHeader->m_network);
 }
 
-void ownPcapReader::readFile(const char* file, FileType type)
-{
-    std::ifstream ifs(file, std::ios::binary);
-    if (!ifs) {
-        std::cerr << "Не удалось открыть файл." << std::endl;
-        return;
-    }
-    uint8_t byte1;
-    uint16_t byte2;
-    uint32_t byte4;
-    uint64_t byte8;
-    std::vector<uint8_t> packetData;
-    bool exFlag = true;
-    while(true)
-    {
-        switch(type){
-            case FileType::OneByte:
-                if(!ifs.read(reinterpret_cast<char*>(&byte1), sizeof(byte1))){
-                    exFlag = false;
-                }
-                byte8 = byte1;
-                break;
-            case FileType::TwoBytes:
-                if(!ifs.read(reinterpret_cast<char*>(&byte2), sizeof(byte2))){
-                    exFlag = false;
-                }
-                byte8 = byte2;
-                break;
-            case FileType::FourBytes:
-                if(!ifs.read(reinterpret_cast<char*>(&byte4), sizeof(byte4))){
-                    exFlag = false;
-                }
-                byte8 = byte4;
-                break;
-            case FileType::EightBytes:
-                if(!ifs.read(reinterpret_cast<char*>(&byte8), sizeof(byte8))){
-                    exFlag = false;
-                }
-                break;
-        }
-        if(exFlag == false){break;};
-        packetData.resize(byte8);
-        ifs.read(reinterpret_cast<char*>(packetData.data()), byte8);
-        std::cout << "Размер пакета: " << byte8 << std::endl;
-        for(uint8_t data : packetData){
-            std::cout << std::hex << std::setw(2) <<std::setfill('0') << static_cast<int>(data) << " ";
-        }
-        std::cout << std::dec << std::endl << std::endl;
-    }
-
-}
-
 int ownPcapReader::getCountPackages()
 {
     return m_packages.size();
@@ -155,16 +103,16 @@ void ownPcapReader::writePacketsToFile(FileType type)
     std::ofstream ofs;
     switch(type){
         case FileType::OneByte:
-            ofs.open("1bytes.bin", std::ios::binary);
+            ofs.open("file.sig8", std::ios::binary);
             break;
         case FileType::TwoBytes:
-            ofs.open("2bytes.bin", std::ios::binary);
+            ofs.open("file.sig16", std::ios::binary);
             break;
         case FileType::FourBytes:
-            ofs.open("4bytes.bin", std::ios::binary);
+            ofs.open("file.sig32", std::ios::binary);
             break;
         case FileType::EightBytes:
-            ofs.open("8bytes.bin", std::ios::binary);
+            ofs.open("file.sig64", std::ios::binary);
             break;
     }
     std::vector<uint8_t> fileBuffer;

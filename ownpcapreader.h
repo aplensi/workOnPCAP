@@ -44,7 +44,6 @@ public:
     int getCountPackages();
     std::map<int, int> getMapOfPackages();
     std::string getLinkTypeName();
-    void readFile(const char* file, FileType type);
 private:
     PcapGlobalHeader* m_globalHeader;
     const char* m_file;
