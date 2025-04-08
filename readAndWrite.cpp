@@ -9,58 +9,20 @@ std::vector<uint8_t> SizedField::read()
     return buffer;
 }
 
-по функции processRead
-1. переделать на работу через буфер
-1.1 в цикле постоянно обращаемся к файлу - это вряд ли быстро
-1.2 плюс к этому - держим файл открытым
-
-нужно стремиться декомпозировать задачу на независимые логические блоки и их реализовывать независимо друг от друга
-
-алгоритм из двух независимых функциональностей
-- читаем файл в буфер: может пригодиться где угодно
-- далее читаем пакеты из буфера в зависимости от типа пакета в другой буфер - буфер пакетов - опять же может пригодиться где угодно
-
-void processRead(const std::string &filename, Field &reader)
+void packetIO::processRead(const std::string &filename, Field &reader)
 {
-    std::ifstream ifs(filename, std::ios::binary);
-    if (!ifs) {
-        std::cerr << "Не удалось открыть файл." << std::endl;
-        return;
-    }
-
-    std::vector<uint8_t> sizeOfData = reader.read();
-    std::vector<uint8_t> buffer;
-    uint64_t length = 0;
-    while (true)
-    {
-        if(!ifs.read(reinterpret_cast<char*>(sizeOfData.data()), sizeOfData.size()))
-        {
-            break;
-        }
-        for(uint8_t i = 0; i < sizeOfData.size(); i++){
-            length += static_cast<uint64_t>(sizeOfData[i])  << (8 * i);
-        }
-
-        buffer.resize(length);
-        ifs.read(reinterpret_cast<char*>(buffer.data()), length);
-        std::cout << "Размер пакета: " << length << std::endl;
-
-        for(uint8_t byte : buffer){
-            std::cout << std::hex << static_cast<int>(byte) << " ";
-        }
-
-        std::cout << std::dec << std::endl << std::endl;
-        length = 0;
-    }
+    ownPcapReader fReader;
+    fReader.readToBuffer(m_buffer, filename.c_str());
+    readFromBuffer(m_buffer, reader);
 }
 
-по функции processWrite
-1. нужно вынести pcap-зависимости из этой функции
-опять же напрашивается разделение 
-- какой-то конвертор из pcap пакетную структуру
-- запись пакетной структуры в соответствии с указанным типом
+// по функции processWrite
+// 1. нужно вынести pcap-зависимости из этой функции
+// опять же напрашивается разделение 
+// - какой-то конвертор из pcap пакетную структуру
+// - запись пакетной структуры в соответствии с указанным типом
 
-void processWrite(std::vector<uint8_t> buffer, Field &reader)
+void packetIO::processWrite(std::vector<uint8_t> buffer, Field &reader)
 {
     std::vector<uint8_t> sizeOfData = reader.read();
     std::ofstream ofs("file.sig"+std::to_string(sizeOfData.size() * 8),  std::ios::binary);
@@ -79,7 +41,7 @@ void processWrite(std::vector<uint8_t> buffer, Field &reader)
                 sizeOfData[i] = 0;
             }
         }
-        fileBuffer.insert(fileBuffer.end(), sizeOfData.begin(), sizeOfData.end());
+        fileBuffer.insert(fileBuffer.end(), sizeOfData.begin(), sizeOfData.end()); 
         fileBuffer.insert(fileBuffer.end(), dataPtr + offset, dataPtr + offset + packetHeader->m_incl_len);
 
         offset += packetHeader->m_incl_len;
@@ -87,9 +49,46 @@ void processWrite(std::vector<uint8_t> buffer, Field &reader)
     ofs.write(reinterpret_cast<const char*>(fileBuffer.data()), fileBuffer.size());
 }
 
-общее:
-для указания типа пакета (он же тип пакетного файла) используется усложенненая конструкция
-- можно вынести в enum
-- можно указывать длину байтах
+void packetIO::readFromBuffer(const std::vector<uint8_t>& buffer, Field& reader)
+{
+    size_t offset = 0;
+    uint64_t length = 0;
 
-использование вектора - на самый подходящий способ (хотя и рабочий)
+    while (offset < buffer.size())
+    {
+
+        std::vector<uint8_t> sizeOfData = reader.read();
+        if (offset + sizeOfData.size() > buffer.size()) {
+            std::cerr << "Ошибка: недостаточно данных для чтения размера пакета." << std::endl;
+            break;
+        }
+
+        for (uint8_t i = 0; i < sizeOfData.size(); i++) {
+            length += static_cast<uint64_t>(buffer[offset + i]) << (8 * i);
+        }
+        offset += sizeOfData.size();
+
+        if (offset + length > buffer.size()) {
+            std::cerr << "Ошибка: недостаточно данных для чтения полезной нагрузки." << std::endl;
+            break;
+        }
+
+        std::vector<uint8_t> payload(buffer.begin() + offset, buffer.begin() + offset + length);
+        offset += length;
+
+        std::cout << "Размер пакета: " << length << std::endl;
+        for (uint8_t byte : payload) {
+            std::cout << std::hex << static_cast<int>(byte) << " ";
+        }
+        std::cout << std::dec << std::endl << std::endl;
+
+        length = 0;
+    }
+}
+
+// общее:
+// для указания типа пакета (он же тип пакетного файла) используется усложенненая конструкция
+// - можно вынести в enum
+// - можно указывать длину байтах
+
+// использование вектора - на самый подходящий способ (хотя и рабочий)

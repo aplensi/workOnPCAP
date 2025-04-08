@@ -39,12 +39,14 @@ enum FileType
 class ownPcapReader
 {
 public:
+    ownPcapReader();
     ownPcapReader(const char* file);
     int getLinkType();
     int getCountPackages();
     std::map<int, int> getMapOfPackages();
     std::string getLinkTypeName();
     std::vector<uint8_t> getBuffer();
+    void readToBuffer(std::vector<uint8_t>& buffer, const char* file);
 private:
     PcapGlobalHeader* m_globalHeader;
     const char* m_file;
@@ -52,7 +54,6 @@ private:
     std::vector<Packet> m_packages;
     std::map<int, int> m_sizes;
     void countPackets();
-    void readPcapToBuffer();
     void createListOfSizes();
     void createListOfPackages();
     std::string getLinkTypeName(uint32_t linktype) const;

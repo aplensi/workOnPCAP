@@ -31,8 +31,15 @@ private:
     size_t m_size;
 };
 
-void processRead(const std::string& filename, Field& reader);
-
-void processWrite(std::vector<uint8_t> buffer, Field& reader);
+class packetIO {
+public:
+    void processRead(const std::string& filename, Field& reader);
+    void processWrite(std::vector<uint8_t> buffer, Field& reader);
+private:
+    std::ofstream m_ofs;
+    std::vector<uint8_t> m_buffer;
+    uint64_t m_length = 0;
+    void readFromBuffer(const std::vector<uint8_t>& buffer, Field& reader);
+};
 
 #endif

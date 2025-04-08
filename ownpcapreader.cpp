@@ -1,8 +1,12 @@
 #include "ownpcapreader.h"
 
-ownPcapReader::ownPcapReader(const char* file) : m_file(file)
+ownPcapReader::ownPcapReader()
 {
-    readPcapToBuffer();
+}
+
+ownPcapReader::ownPcapReader(const char *file) : m_file(file)
+{
+    readToBuffer(m_buffer, m_file);
     createListOfPackages();
     createListOfSizes();
 }
@@ -32,10 +36,9 @@ std::map<int, int> ownPcapReader::getMapOfPackages()
     return m_sizes;
 }
 
-void ownPcapReader::readPcapToBuffer()
+void ownPcapReader::readToBuffer(std::vector<uint8_t>& buffer, const char* file)
 {
-    std::ifstream ifs;
-    ifs.open(m_file, std::ios::binary);
+    std::ifstream ifs(file, std::ios::binary);
     if (!ifs) {
         std::cerr << "Не удалось открыть файл." << std::endl;
         return;
@@ -43,9 +46,9 @@ void ownPcapReader::readPcapToBuffer()
     ifs.seekg(0, std::ios::end);
     std::streamsize fileSize = ifs.tellg();
     ifs.seekg(0, std::ios::beg);
-    m_buffer.resize(fileSize);
-    if (!ifs.read(reinterpret_cast<char*>(m_buffer.data()), fileSize)) {
-        throw std::runtime_error("Ошибка чтения файла: " + std::string(m_file));
+    buffer.resize(fileSize);
+    if (!ifs.read(reinterpret_cast<char*>(buffer.data()), fileSize)) {
+        throw std::runtime_error("Ошибка чтения файла: " + std::string(file));
     }
     ifs.close();
 }

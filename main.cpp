@@ -6,11 +6,12 @@ int main(int argc, char *argv[])
 
     std::cout << "\033c";
     ownPcapReader ownreader("record.pcap");
+    packetIO pIo;
 
     SizedField field(8);
     TypedField<uint64_t> field1;
-    processWrite(ownreader.getBuffer(), field);
-    processRead("file.sig64", field1);
+    pIo.processWrite(ownreader.getBuffer(), field);
+    pIo.processRead("file.sig64", field1);
 
     // std::map<int, int> sizes = ownreader.getMapOfPackages();
     // for(auto [size, count] : sizes){
