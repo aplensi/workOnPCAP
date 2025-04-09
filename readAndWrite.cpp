@@ -16,39 +16,6 @@ void packetIO::processRead(const std::string &filename, Field &reader)
     readFromBuffer(m_buffer, reader);
 }
 
-// по функции processWrite
-// 1. нужно вынести pcap-зависимости из этой функции
-// опять же напрашивается разделение 
-// - какой-то конвертор из pcap пакетную структуру
-// - запись пакетной структуры в соответствии с указанным типом
-
-void packetIO::processWrite(std::vector<uint8_t> buffer, Field &reader)
-{
-    std::vector<uint8_t> sizeOfData = reader.read();
-    std::ofstream ofs("file.sig"+std::to_string(sizeOfData.size() * 8),  std::ios::binary);
-    std::vector<uint8_t> fileBuffer;
-    const uint8_t* dataPtr = reinterpret_cast<const uint8_t*>(buffer.data());
-    PcapPacketHeader* packetHeader;
-    size_t offset = sizeof(PcapGlobalHeader);
-    while(offset + sizeof(PcapPacketHeader) <= buffer.size())
-    {
-        packetHeader = reinterpret_cast<PcapPacketHeader*>(buffer.data() + offset);
-        offset += sizeof(PcapPacketHeader);
-        for (size_t i = 0; i < sizeOfData.size(); ++i) {
-            if (i < sizeof(packetHeader->m_incl_len)) {
-                sizeOfData[i] = (packetHeader->m_incl_len >> (i * 8)) & 0xFF;
-            } else {
-                sizeOfData[i] = 0;
-            }
-        }
-        fileBuffer.insert(fileBuffer.end(), sizeOfData.begin(), sizeOfData.end()); 
-        fileBuffer.insert(fileBuffer.end(), dataPtr + offset, dataPtr + offset + packetHeader->m_incl_len);
-
-        offset += packetHeader->m_incl_len;
-    }
-    ofs.write(reinterpret_cast<const char*>(fileBuffer.data()), fileBuffer.size());
-}
-
 void packetIO::readFromBuffer(const std::vector<uint8_t>& buffer, Field& reader)
 {
     size_t offset = 0;
@@ -84,6 +51,53 @@ void packetIO::readFromBuffer(const std::vector<uint8_t>& buffer, Field& reader)
 
         length = 0;
     }
+}
+
+void packetIO::processWrite(std::vector<uint8_t> buffer, Field &reader)
+{
+    m_buffer.clear();
+    m_buffer.insert(m_buffer.end(), buffer.begin(), buffer.end());
+    
+    convertPcapBuffer(m_buffer, reader);
+    writeToFile(m_buffer, reader);
+}
+
+void packetIO::convertPcapBuffer(std::vector<uint8_t> &buffer, Field &reader)
+{
+    std::vector<uint8_t> sizeOfData = reader.read();
+    std::vector<uint8_t> fileBuffer;
+    const uint8_t* dataPtr = reinterpret_cast<const uint8_t*>(buffer.data());
+    PcapPacketHeader* packetHeader;
+    size_t offset = sizeof(PcapGlobalHeader);
+    while(offset + sizeof(PcapPacketHeader) <= buffer.size())
+    {
+        packetHeader = reinterpret_cast<PcapPacketHeader*>(buffer.data() + offset);
+        offset += sizeof(PcapPacketHeader);
+        for (size_t i = 0; i < sizeOfData.size(); ++i) {
+            if (i < sizeof(packetHeader->m_incl_len)) {
+                sizeOfData[i] = (packetHeader->m_incl_len >> (i * 8)) & 0xFF;
+            } else {
+                sizeOfData[i] = 0;
+            }
+        }
+        fileBuffer.insert(fileBuffer.end(), sizeOfData.begin(), sizeOfData.end()); 
+        fileBuffer.insert(fileBuffer.end(), dataPtr + offset, dataPtr + offset + packetHeader->m_incl_len);
+
+        offset += packetHeader->m_incl_len;
+    }
+    buffer.clear();
+    buffer = std::move(fileBuffer);
+}
+
+void packetIO::writeToFile(const std::vector<uint8_t> &buffer, Field &reader)
+{
+    std::ofstream ofs("file.sig" + std::to_string(reader.read().size() * 8), std::ios::binary);
+    if (!ofs) {
+        throw std::runtime_error("Ошибка: не удалось открыть файл для записи.");
+    }
+
+    ofs.write(reinterpret_cast<const char*>(buffer.data()), buffer.size());
+    ofs.close();
 }
 
 // общее:

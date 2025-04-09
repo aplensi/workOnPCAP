@@ -40,6 +40,8 @@ private:
     std::vector<uint8_t> m_buffer;
     uint64_t m_length = 0;
     void readFromBuffer(const std::vector<uint8_t>& buffer, Field& reader);
+    void convertPcapBuffer(std::vector<uint8_t>& buffer, Field& reader);
+    void writeToFile(const std::vector<uint8_t>& buffer, Field& reader);
 };
 
 #endif
