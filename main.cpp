@@ -11,7 +11,7 @@ int main(int argc, char *argv[])
     SizedField field(4);
     TypedField<uint32_t> field1;
     pIo.processWrite(ownreader.getBuffer(), field);
-    pIo.processRead("file.sig32", field1);
+    pIo.processRead("file.sig4", field1);
 
     // std::map<int, int> sizes = ownreader.getMapOfPackages();
     // for(auto [size, count] : sizes){

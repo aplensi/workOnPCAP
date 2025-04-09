@@ -91,7 +91,7 @@ void packetIO::convertPcapBuffer(std::vector<uint8_t> &buffer, Field &reader)
 
 void packetIO::writeToFile(const std::vector<uint8_t> &buffer, Field &reader)
 {
-    std::ofstream ofs("file.sig" + std::to_string(reader.read().size() * 8), std::ios::binary);
+    std::ofstream ofs("file.sig" + std::to_string(reader.read().size()), std::ios::binary);
     if (!ofs) {
         throw std::runtime_error("Ошибка: не удалось открыть файл для записи.");
     }
@@ -100,9 +100,5 @@ void packetIO::writeToFile(const std::vector<uint8_t> &buffer, Field &reader)
     ofs.close();
 }
 
-// общее:
-// для указания типа пакета (он же тип пакетного файла) используется усложенненая конструкция
-// - можно вынести в enum
-// - можно указывать длину байтах
-
 // использование вектора - на самый подходящий способ (хотя и рабочий)
+//    мне переписать все под deque? Я просто не вижу более подходящей замены вектору
